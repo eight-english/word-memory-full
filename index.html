@@ -4,12 +4,42 @@
   <meta charset="UTF-8" />
   <title>Word Memory App</title>
   <style>
-    body { font-family: sans-serif; padding: 1rem; }
-    .card { border: 1px solid #ccc; border-radius: 10px; padding: 1rem; margin: 1rem 0; display: flex; align-items: center; gap: 1rem; }
-    .card img { width: 100px; height: auto; }
-    .controls { margin-bottom: 1rem; }
-    .pagination { margin-top: 2rem; }
-    .pagination a { margin: 0 5px; text-decoration: none; }
+    body {
+      font-family: sans-serif;
+      padding: 1rem;
+    }
+
+    .card {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 1rem;
+      margin: 1rem 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .card img {
+      width: 100%;
+      max-width: 400px;
+      height: auto;
+      border-radius: 8px;
+      display: block;
+    }
+
+    .controls {
+      margin-bottom: 1rem;
+    }
+
+    .pagination {
+      margin-top: 2rem;
+    }
+
+    .pagination a {
+      margin: 0 5px;
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
@@ -22,7 +52,7 @@
 
   <script>
     const pageSize = 20;
-    const totalItems = 100; // 今あるデータまで
+    const totalItems = 100; // 現在アップロード済みのデータ数
     const totalPages = Math.ceil(totalItems / pageSize);
     const urlParams = new URLSearchParams(window.location.search);
     const page = parseInt(urlParams.get("page")) || 1;
@@ -72,15 +102,13 @@
       div.className = "card";
       div.innerHTML = `
         <img src="assets/File${i}.png" alt="Image ${i}">
-        <div>
-            <p><strong>${padded}</strong> — ${word}</p>
-            <audio id="audio_${i}" src="assets/${padded}_${word}.mp3"></audio>
-            <button onclick="document.getElementById('audio_${i}').play()">▶️</button><br>
-            <label>
-                <input type="checkbox" onchange="toggleLearned(${i}, this)" ${isLearned(i) ? "checked" : ""}>
-                覚えた
-            </label>
-        </div>
+        <p><strong>${padded}</strong> — ${word}</p>
+        <audio id="audio_${i}" src="assets/${padded}_${word}.mp3"></audio>
+        <button onclick="document.getElementById('audio_${i}').play()">▶️</button><br>
+        <label>
+          <input type="checkbox" onchange="toggleLearned(${i}, this)" ${isLearned(i) ? "checked" : ""}>
+          覚えた
+        </label>
       `;
       cardsDiv.appendChild(div);
       if (!isLearned(i)) {
