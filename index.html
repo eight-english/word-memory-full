@@ -1,177 +1,88 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Word Memory App</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 1rem;
-      max-width: 800px;
-      margin: auto;
-    }
+body {
+  font-family: sans-serif;
+  padding: 1rem;
+  max-width: 800px;
+  margin: auto;
+}
 
-    .card {
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      padding: 1rem;
-      margin: 1rem 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
+.card {
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 1rem;
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  font-size: 1.1rem;
+}
 
-    .card img {
-      width: 100%;
-      max-width: 400px;
-      height: auto;
-      border-radius: 8px;
-    }
+.card img {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
 
-    .controls {
-      margin-bottom: 1rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
+.controls {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
 
-    .pagination {
-      margin: 1rem 0;
-    }
+.pagination {
+  margin: 1rem 0;
+  flex-wrap: wrap;
+  display: flex;
+  gap: 0.5rem;
+}
 
-    .pagination a {
-      margin: 0 5px;
-      text-decoration: none;
-    }
+.pagination a {
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #eee;
+  font-weight: bold;
+}
 
-    input[type="text"] {
-      padding: 6px;
-      font-size: 1rem;
-      flex: 1;
-      min-width: 200px;
-    }
+input[type="text"] {
+  padding: 8px;
+  font-size: 1rem;
+  flex: 1;
+  min-width: 200px;
+}
 
-    button {
-      font-size: 1rem;
-      padding: 6px 12px;
-    }
-  </style>
-  <script src="wordmap.js"></script>
-</head>
-<body>
-  <h1>Word Memory App</h1>
+button {
+  font-size: 1rem;
+  padding: 8px 12px;
+  flex: none;
+}
 
-  <!-- 上部ページネーション -->
-  <div class="pagination" id="paginationTop"></div>
+/* ✅ スマホ表示向けのレイアウト調整 */
+@media (max-width: 600px) {
+  .card {
+    font-size: 1rem;
+    padding: 1rem;
+  }
 
-  <!-- コントロール -->
-  <div class="controls">
-    <input type="text" id="searchInput" placeholder="単語検索..." oninput="filterCards()">
-    <button onclick="playUnlearned()">▶️ 覚えていないカードだけ再生</button>
-    <button onclick="resetLearned()">🔄 覚えた状態をリセット</button>
-  </div>
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
 
-  <div id="cards"></div>
+  input[type="text"],
+  button {
+    width: 100%;
+    font-size: 1rem;
+  }
 
-  <!-- 下部ページネーション -->
-  <div class="pagination" id="paginationBottom"></div>
+  .pagination {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
 
-  <script>
-    const pageSize = 20;
-    const totalItems = 721;
-    const totalPages = Math.ceil(totalItems / pageSize);
-    const urlParams = new URLSearchParams(window.location.search);
-    const page = urlParams.has("page") ? parseInt(urlParams.get("page")) : 0;
-    const start = page > 0 ? (page - 1) * pageSize + 1 : 1;
-    const end = page > 0 ? Math.min(start + pageSize - 1, totalItems) : totalItems;
-    const showImages = page > 0;
-
-    const audioElements = [];
-
-    function isLearned(index) {
-      return localStorage.getItem("learned_" + index) === "1";
-    }
-
-    function toggleLearned(index, checkbox) {
-      localStorage.setItem("learned_" + index, checkbox.checked ? "1" : "0");
-    }
-
-    function resetLearned() {
-      for (let i = 1; i <= totalItems; i++) {
-        localStorage.removeItem("learned_" + i);
-      }
-      location.reload();
-    }
-
-    function filterCards() {
-      const keyword = document.getElementById("searchInput").value.toLowerCase();
-      document.querySelectorAll(".card").forEach(card => {
-        card.style.display = card.textContent.toLowerCase().includes(keyword) ? "block" : "none";
-      });
-    }
-
-    function playUnlearned() {
-      let i = 0;
-      function playNext() {
-        if (i >= audioElements.length) return;
-        const audio = audioElements[i]();
-        audio.play();
-        audio.onended = () => {
-          i++;
-          playNext();
-        };
-      }
-      playNext();
-    }
-
-    function buildPagination(target) {
-      const topLink = document.createElement("a");
-      topLink.href = `index.html`;
-      topLink.textContent = `[TOP]`;
-      target.appendChild(topLink);
-
-      for (let p = 1; p <= totalPages; p++) {
-        const a = document.createElement("a");
-        a.href = `?page=${p}`;
-        a.textContent = `[${p}]`;
-        if (p === page) a.style.fontWeight = "bold";
-        target.appendChild(a);
-      }
-    }
-
-    function loadCards() {
-      const cardsDiv = document.getElementById("cards");
-
-      for (let i = start; i <= end; i++) {
-        const padded = i.toString().padStart(3, '0');
-        const word = wordmap[i] || "unknown";
-        const audioPath = `assets/${padded}_${word}.mp3`;
-        const imagePath = `assets/File${i}.png`;
-
-        const div = document.createElement("div");
-        div.className = "card";
-        div.innerHTML = `
-          ${showImages ? `<img src="${imagePath}" alt="Image ${i}">` : ""}
-          <p><strong>${padded}</strong> — ${word}</p>
-          <audio id="audio_${i}" src="${audioPath}"></audio>
-          <button onclick="document.getElementById('audio_${i}').play()">▶️</button><br>
-          <label>
-            <input type="checkbox" onchange="toggleLearned(${i}, this)" ${isLearned(i) ? "checked" : ""}>
-            覚えた
-          </label>
-        `;
-        cardsDiv.appendChild(div);
-        if (!isLearned(i)) {
-          audioElements.push(() => document.getElementById('audio_' + i));
-        }
-      }
-    }
-
-    // 実行
-    buildPagination(document.getElementById("paginationTop"));
-    buildPagination(document.getElementById("paginationBottom"));
-    loadCards();
-  </script>
-</body>
-</html>
+  .pagination a {
+    font-size: 0.9rem;
+  }
+}
