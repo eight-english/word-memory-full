@@ -1,73 +1,115 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Word Memory App</title>
-    <style>
-        body { font-family: sans-serif; padding: 1rem; }
-        .card { border: 1px solid #ccc; border-radius: 10px; padding: 1rem; margin: 1rem 0; display: flex; align-items: center; gap: 1rem; }
-        .card img { width: 100px; height: auto; }
-        .controls { margin-bottom: 1rem; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Word Memory App</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; }
+    .card { border: 1px solid #ccc; border-radius: 10px; padding: 1rem; margin: 1rem 0; display: flex; align-items: center; gap: 1rem; }
+    .card img { width: 100px; height: auto; }
+    .controls { margin-bottom: 1rem; }
+    .pagination { margin-top: 2rem; }
+    .pagination a { margin: 0 5px; text-decoration: none; }
+  </style>
 </head>
 <body>
-    <h1>Word Memory App</h1>
-    <div class="controls">
-        <button onclick="playUnlearned()">▶️ 覚えていないカードだけ再生</button>
-    </div>
-    <div id="cards"></div>
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const page = parseInt(urlParams.get("page")) || 1;
-        const start = (page - 1) * 10 + 1;
-        const end = Math.min(start + 9, 721);
-        const cardsDiv = document.getElementById("cards");
+  <h1>Word Memory App</h1>
+  <div class="controls">
+    <button onclick="playUnlearned()">▶️ 覚えていないカードだけ再生</button>
+  </div>
+  <div id="cards"></div>
+  <div class="pagination" id="pagination"></div>
 
-        function isLearned(index) {
-            return localStorage.getItem("learned_" + index) === "1";
-        }
+  <script>
+    const pageSize = 20;
+    const totalItems = 100; // 今あるデータまで
+    const totalPages = Math.ceil(totalItems / pageSize);
+    const urlParams = new URLSearchParams(window.location.search);
+    const page = parseInt(urlParams.get("page")) || 1;
+    const start = (page - 1) * pageSize + 1;
+    const end = Math.min(start + pageSize - 1, totalItems);
 
-        function toggleLearned(index, checkbox) {
-            localStorage.setItem("learned_" + index, checkbox.checked ? "1" : "0");
-        }
+    const cardsDiv = document.getElementById("cards");
+    const paginationDiv = document.getElementById("pagination");
 
-        const audioElements = [];
+    const wordMap = {
+      1: "a", 2: "able", 3: "about", 4: "absolutely", 5: "accept",
+      6: "account", 7: "across", 8: "action", 9: "actually", 10: "add",
+      11: "address", 12: "adult", 13: "afraid", 14: "after", 15: "again",
+      16: "against", 17: "age", 18: "ago", 19: "agree", 20: "air",
+      21: "airport", 22: "alarm", 23: "all", 24: "allow", 25: "almost",
+      26: "alone", 27: "along", 28: "already", 29: "also", 30: "although",
+      31: "always", 32: "amazing", 33: "among", 34: "amount", 35: "an",
+      36: "and", 37: "angry", 38: "animal", 39: "another", 40: "answer",
+      41: "any", 42: "anyone", 43: "anything", 44: "apartment", 45: "appear",
+      46: "apple", 47: "area", 48: "arm", 49: "around", 50: "arrive",
+      51: "art", 52: "article", 53: "as", 54: "ask", 55: "asleep",
+      56: "at", 57: "attack", 58: "attention", 59: "aunt", 60: "autumn",
+      61: "away", 62: "baby", 63: "back", 64: "bad", 65: "bag",
+      66: "bake", 67: "ball", 68: "banana", 69: "band", 70: "bank",
+      71: "bar", 72: "base", 73: "basket", 74: "bath", 75: "bathroom",
+      76: "battery", 77: "be", 78: "beach", 79: "bean", 80: "bear",
+      81: "beautiful", 82: "because", 83: "become", 84: "bed", 85: "before",
+      86: "begin", 87: "behind", 88: "believe", 89: "below", 90: "best",
+      91: "better", 92: "between", 93: "beyond", 94: "bicycle", 95: "big",
+      96: "bill", 97: "bird", 98: "birthday", 99: "bit", 100: "black"
+    };
 
-        for (let i = start; i <= end; i++) {
-            const padded = i.toString().padStart(3, '0');
-            const div = document.createElement("div");
-            div.className = "card";
-            div.innerHTML = `
-                <img src="assets/File${i}.png" alt="Image ${i}">
-                <div>
-                    <p><strong>${padded}</strong></p>
-                    <audio id="audio_${i}" src="assets/${padded}_a.mp3"></audio>
-                    <button onclick="document.getElementById('audio_${i}').play()">▶️</button><br>
-                    <label>
-                        <input type="checkbox" onchange="toggleLearned(${i}, this)" ${isLearned(i) ? "checked" : ""}>
-                        覚えた
-                    </label>
-                </div>
-            `;
-            cardsDiv.appendChild(div);
-            if (!isLearned(i)) {
-                audioElements.push(document.getElementById('audio_' + i));
-            }
-        }
+    function isLearned(index) {
+      return localStorage.getItem("learned_" + index) === "1";
+    }
 
-        function playUnlearned() {
-            let i = 0;
-            function playNext() {
-                if (i >= audioElements.length) return;
-                audioElements[i].play();
-                audioElements[i].onended = () => {
-                    i++;
-                    playNext();
-                };
-            }
-            playNext();
-        }
-    </script>
+    function toggleLearned(index, checkbox) {
+      localStorage.setItem("learned_" + index, checkbox.checked ? "1" : "0");
+    }
+
+    const audioElements = [];
+
+    for (let i = start; i <= end; i++) {
+      const padded = i.toString().padStart(3, '0');
+      const word = wordMap[i] || "unknown";
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = `
+        <img src="assets/File${i}.png" alt="Image ${i}">
+        <div>
+            <p><strong>${padded}</strong> — ${word}</p>
+            <audio id="audio_${i}" src="assets/${padded}_${word}.mp3"></audio>
+            <button onclick="document.getElementById('audio_${i}').play()">▶️</button><br>
+            <label>
+                <input type="checkbox" onchange="toggleLearned(${i}, this)" ${isLearned(i) ? "checked" : ""}>
+                覚えた
+            </label>
+        </div>
+      `;
+      cardsDiv.appendChild(div);
+      if (!isLearned(i)) {
+        audioElements.push(() => document.getElementById('audio_' + i));
+      }
+    }
+
+    function playUnlearned() {
+      let i = 0;
+      function playNext() {
+        if (i >= audioElements.length) return;
+        const audio = audioElements[i]();
+        audio.play();
+        audio.onended = () => {
+          i++;
+          playNext();
+        };
+      }
+      playNext();
+    }
+
+    // ページネーション
+    for (let p = 1; p <= totalPages; p++) {
+      const a = document.createElement("a");
+      a.href = `?page=${p}`;
+      a.textContent = `[${p}]`;
+      if (p === page) a.style.fontWeight = "bold";
+      paginationDiv.appendChild(a);
+    }
+  </script>
 </body>
 </html>
