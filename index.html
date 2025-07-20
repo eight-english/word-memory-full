@@ -1,180 +1,132 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Word Memory App</title>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 1rem;
-      max-width: 480px;
-      margin: auto;
-    }
-
-    .card {
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      padding: 1rem;
-      margin: 1rem 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .card img {
-      width: 100%;
-      height: auto;
-      border-radius: 8px;
-    }
-
-    .controls {
-      margin-bottom: 1rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .pagination {
-      margin: 1rem 0;
-      text-align: center;
-      flex-wrap: wrap;
-    }
-
-    .pagination a {
-      margin: 0 5px;
-      text-decoration: none;
-    }
-
-    input[type="text"] {
-      padding: 6px;
-      font-size: 1rem;
-      flex: 1;
-      min-width: 200px;
-    }
-
-    button {
-      font-size: 1rem;
-      padding: 6px 12px;
-    }
+    body{font-family:sans-serif;padding:1rem;max-width:480px;margin:auto}
+    h1{text-align:center;font-size:1.5rem;margin-bottom:1rem}
+    .controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:1rem;align-items:center}
+    input[type="text"]{flex:1;min-width:150px;padding:6px;font-size:1rem}
+    button{font-size:1rem;padding:6px 12px}
+    .pagination{margin:1rem 0;text-align:center}
+    .pagination a{margin:0 5px;text-decoration:none}
+    .card{border:1px solid #ccc;border-radius:10px;padding:1rem;margin:1rem 0;display:flex;flex-direction:column;gap:.5rem}
+    .card img{width:100%;height:auto;border-radius:8px}
   </style>
 </head>
 <body>
   <h1>Word Memory App</h1>
 
+  <!-- ページネーション（上） -->
   <div class="pagination" id="paginationTop"></div>
 
+  <!-- コントロール -->
   <div class="controls">
-    <input type="text" id="searchInput" placeholder="単語検索..." oninput="filterCards()">
+    <input id="searchInput" placeholder="単語検索..." oninput="filterCards()">
     <button onclick="playUnlearned()">▶️ 覚えていないカードだけ再生</button>
     <button onclick="resetLearned()">🔄 覚えた状態をリセット</button>
   </div>
 
   <div id="cards"></div>
 
+  <!-- ページネーション（下） -->
   <div class="pagination" id="paginationBottom"></div>
 
   <script src="wordmap.js"></script>
   <script>
+    /* -------- 基本設定 -------- */
     const pageSize = 20;
     const totalItems = 721;
     const totalPages = Math.ceil(totalItems / pageSize);
     const urlParams = new URLSearchParams(window.location.search);
-    const page = urlParams.has("page") ? parseInt(urlParams.get("page")) : 0;
+    const page = urlParams.has("page") ? parseInt(urlParams.get("page")) : 0;   // 0 = TOP
     const start = page > 0 ? (page - 1) * pageSize + 1 : 1;
-    const end = page > 0 ? Math.min(start + pageSize - 1, totalItems) : totalItems;
+    const end   = page > 0 ? Math.min(start + pageSize - 1, totalItems) : totalItems;
     const showImages = page > 0;
 
-    const audioElements = [];
+    const audioElements = [];   // 未学習カードの audio 参照リスト
 
-    function isLearned(index) {
-      return localStorage.getItem("learned_" + index) === "1";
-    }
+    /* -------- localStorage 判定 -------- */
+    const keyOf = i => "learned_" + i;
+    const isLearned = i => localStorage.getItem(keyOf(i)) === "1";
+    function toggleLearned(i, cb){ localStorage.setItem(keyOf(i), cb.checked ? "1" : "0"); }
 
-    function toggleLearned(index, checkbox) {
-      localStorage.setItem("learned_" + index, checkbox.checked ? "1" : "0");
-    }
+    /* -------- カード生成 -------- */
+    function loadCards(){
+      const wrap = document.getElementById("cards");
+      for(let i = start; i <= end; i++){
+        const id  = i.toString().padStart(3,"0");
+        const word= (wordmap && wordmap[id]) || "";
+        const audioSrc = `assets/${id}_${word}.mp3`;
 
-    function resetLearned() {
-      for (let i = 1; i <= totalItems; i++) {
-        localStorage.removeItem("learned_" + i);
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          ${showImages ? `<img src="assets/File${i}.png" alt="Image ${i}">` : ""}
+          <p><strong>${id}</strong> — ${word}</p>
+          <audio id="audio_${i}" src="${audioSrc}" preload="metadata"></audio>
+          <button onclick="singlePlay(${i})">▶️ 再生する</button>
+          <label><input type="checkbox" onchange="toggleLearned(${i},this)" ${isLearned(i)?"checked":""}> 覚えた</label>`;
+        wrap.appendChild(card);
+
+        if(!isLearned(i)) audioElements.push(()=>document.getElementById("audio_"+i));
       }
-      location.reload();
     }
 
-    function filterCards() {
-      const keyword = document.getElementById("searchInput").value.toLowerCase();
-      document.querySelectorAll(".card").forEach(card => {
-        card.style.display = card.textContent.toLowerCase().includes(keyword) ? "block" : "none";
+    /* -------- 個別再生（タップ時） -------- */
+    function singlePlay(i){
+      const a = document.getElementById("audio_"+i);
+      if(!a) return;
+      a.currentTime = 0;
+      a.play().catch(()=>{});           // Safari対策: ユーザー操作内なので通常成功
+    }
+
+    /* -------- 未学習連続再生（ユーザー操作起点） -------- */
+    function playUnlearned(){
+      let idx = 0;
+      const next = ()=>{
+        if(idx >= audioElements.length) return;
+        const a = audioElements[idx]();
+        a.currentTime = 0;
+        a.play().then(()=>{
+          a.onended = ()=>{ idx++; next(); };
+        }).catch(()=>{ idx++; next(); });
+      };
+      next();
+    }
+
+    /* -------- 検索フィルタ -------- */
+    function filterCards(){
+      const kw = document.getElementById("searchInput").value.toLowerCase();
+      document.querySelectorAll(".card").forEach(card=>{
+        card.style.display = card.textContent.toLowerCase().includes(kw) ? "block" : "none";
       });
     }
 
-    function playUnlearned() {
-      let i = 0;
-      function playNext() {
-        if (i >= audioElements.length) return;
-        const audio = audioElements[i]();
-        audio.play();
-        audio.onended = () => {
-          i++;
-          playNext();
-        };
-      }
-      playNext();
+    /* -------- 覚えたリセット -------- */
+    function resetLearned(){
+      for(let i=1;i<=totalItems;i++) localStorage.removeItem(keyOf(i));
+      location.reload();
     }
 
-    function buildPagination(target) {
-      const topLink = document.createElement("a");
-      topLink.href = `index.html`;
-      topLink.textContent = `[TOP]`;
-      target.appendChild(topLink);
-
-      for (let p = 1; p <= totalPages; p++) {
-        const a = document.createElement("a");
-        a.href = `?page=${p}`;
-        a.textContent = `[${p}]`;
-        if (p === page) a.style.fontWeight = "bold";
+    /* -------- ページネーション -------- */
+    function buildPager(target){
+      const top = document.createElement("a");
+      top.href="index.html"; top.textContent="[TOP]";
+      target.appendChild(top);
+      for(let p=1;p<=totalPages;p++){
+        const a=document.createElement("a");
+        a.href=`?page=${p}`; a.textContent=`[${p}]`;
+        if(p===page) a.style.fontWeight="bold";
         target.appendChild(a);
       }
     }
 
-    function loadCards() {
-      const cardsDiv = document.getElementById("cards");
-
-      for (let i = start; i <= end; i++) {
-        const padded = i.toString().padStart(3, '0');
-        const word = (typeof wordmap !== 'undefined' && wordmap[padded]) ? wordmap[padded] : "";
-        const audioPath = `assets/${padded}_${word}.mp3`;
-
-        const div = document.createElement("div");
-        div.className = "card";
-
-        let content = "";
-        if (showImages) {
-          content += `<img src="assets/File${i}.png" alt="Image ${i}">`;
-        }
-
-        content += `
-          <p><strong>${padded}</strong> — ${word}</p>
-          <audio id="audio_${i}" src="${audioPath}" ${page <= 1 ? 'autoplay' : ''}></audio>
-          <button onclick="document.getElementById('audio_${i}').play()">▶️ 再生する</button><br>
-          <label>
-            <input type="checkbox" onchange="toggleLearned(${i}, this)" ${isLearned(i) ? "checked" : ""}>
-            覚えた
-          </label>
-        `;
-
-        div.innerHTML = content;
-        cardsDiv.appendChild(div);
-
-        if (!isLearned(i)) {
-          audioElements.push(() => document.getElementById('audio_' + i));
-        }
-      }
-    }
-
-    buildPagination(document.getElementById("paginationTop"));
-    buildPagination(document.getElementById("paginationBottom"));
+    /* -------- 初期化 -------- */
+    buildPager(document.getElementById("paginationTop"));
+    buildPager(document.getElementById("paginationBottom"));
     loadCards();
   </script>
 </body>
