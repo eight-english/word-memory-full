@@ -37,62 +37,60 @@
   <script src="wordmap.js"></script>
   <script>
     /* -------- 基本設定 -------- */
-    const pageSize = 20;
+    const pageSize   = 20;
     const totalItems = 721;
     const totalPages = Math.ceil(totalItems / pageSize);
-    const urlParams = new URLSearchParams(window.location.search);
-    const page = urlParams.has("page") ? parseInt(urlParams.get("page")) : 0;   // 0 = TOP
-    const start = page > 0 ? (page - 1) * pageSize + 1 : 1;
-    const end   = page > 0 ? Math.min(start + pageSize - 1, totalItems) : totalItems;
+    const urlParams  = new URLSearchParams(window.location.search);
+    const page       = urlParams.has("page") ? parseInt(urlParams.get("page")) : 0;   // 0 = TOP
+    const start      = page > 0 ? (page - 1) * pageSize + 1 : 1;
+    const end        = page > 0 ? Math.min(start + pageSize - 1, totalItems) : totalItems;
     const showImages = page > 0;
 
-    const audioElements = [];   // 未学習カードの audio 参照リスト
-
-    /* -------- localStorage 判定 -------- */
-    const keyOf = i => "learned_" + i;
+    /* -------- 学習状態 -------- */
+    const keyOf     = i => "learned_" + i;
     const isLearned = i => localStorage.getItem(keyOf(i)) === "1";
     function toggleLearned(i, cb){ localStorage.setItem(keyOf(i), cb.checked ? "1" : "0"); }
+
+    /* -------- Audio プレイヤー -------- */
+    let player = null;               // 再利用する単一 Audio インスタンス
+    function singlePlay(src){
+      if(!player){ player = new Audio(); }
+      player.src = src;
+      player.currentTime = 0;
+      player.play().catch(()=>{});   // iOS Safari の Promise 例外回避
+    }
+
+    /* -------- 未学習カードの src リスト -------- */
+    const audioSrcList = [];
 
     /* -------- カード生成 -------- */
     function loadCards(){
       const wrap = document.getElementById("cards");
       for(let i = start; i <= end; i++){
-        const id  = i.toString().padStart(3,"0");
-        const word= (wordmap && wordmap[id]) || "";
-        const audioSrc = `assets/${id}_${word}.mp3`;
+        const id   = i.toString().padStart(3,"0");
+        const word = (typeof wordmap!=='undefined' && wordmap[id]) ? wordmap[id] : "";
+        const src  = `assets/${id}_${word}.mp3`;
 
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
-          ${showImages ? `<img src="assets/File${i}.png" alt="Image ${i}">` : ""}
+          ${ showImages ? `<img src="assets/File${i}.png" alt="Image ${i}">` : "" }
           <p><strong>${id}</strong> — ${word}</p>
-          <audio id="audio_${i}" src="${audioSrc}" preload="metadata"></audio>
-          <button onclick="singlePlay(${i})">▶️ 再生する</button>
+          <button onclick="singlePlay('${src}')">▶️ 再生する</button>
           <label><input type="checkbox" onchange="toggleLearned(${i},this)" ${isLearned(i)?"checked":""}> 覚えた</label>`;
         wrap.appendChild(card);
 
-        if(!isLearned(i)) audioElements.push(()=>document.getElementById("audio_"+i));
+        if(!isLearned(i)) audioSrcList.push(src);
       }
     }
 
-    /* -------- 個別再生（タップ時） -------- */
-    function singlePlay(i){
-      const a = document.getElementById("audio_"+i);
-      if(!a) return;
-      a.currentTime = 0;
-      a.play().catch(()=>{});           // Safari対策: ユーザー操作内なので通常成功
-    }
-
-    /* -------- 未学習連続再生（ユーザー操作起点） -------- */
+    /* -------- 未学習カードを連続再生 -------- */
     function playUnlearned(){
       let idx = 0;
       const next = ()=>{
-        if(idx >= audioElements.length) return;
-        const a = audioElements[idx]();
-        a.currentTime = 0;
-        a.play().then(()=>{
-          a.onended = ()=>{ idx++; next(); };
-        }).catch(()=>{ idx++; next(); });
+        if(idx >= audioSrcList.length) return;
+        singlePlay(audioSrcList[idx]);
+        player.onended = ()=>{ idx++; next(); };
       };
       next();
     }
@@ -100,8 +98,8 @@
     /* -------- 検索フィルタ -------- */
     function filterCards(){
       const kw = document.getElementById("searchInput").value.toLowerCase();
-      document.querySelectorAll(".card").forEach(card=>{
-        card.style.display = card.textContent.toLowerCase().includes(kw) ? "block" : "none";
+      document.querySelectorAll(".card").forEach(c=>{
+        c.style.display = c.textContent.toLowerCase().includes(kw) ? "block" : "none";
       });
     }
 
