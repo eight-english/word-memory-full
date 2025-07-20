@@ -1,22 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Word Memory App</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       font-family: sans-serif;
       padding: 1rem;
-      margin: 0 auto;
-      max-width: 500px;
+      max-width: 480px;
+      margin: auto;
     }
 
     .card {
       border: 1px solid #ccc;
       border-radius: 10px;
       padding: 1rem;
-      margin-bottom: 1rem;
+      margin: 1rem 0;
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
@@ -29,40 +28,34 @@
     }
 
     .controls {
+      margin-bottom: 1rem;
       display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .pagination {
+      margin: 1rem 0;
+      text-align: center;
+      flex-wrap: wrap;
+    }
+
+    .pagination a {
+      margin: 0 5px;
+      text-decoration: none;
     }
 
     input[type="text"] {
-      padding: 8px;
+      padding: 6px;
       font-size: 1rem;
+      flex: 1;
+      min-width: 200px;
     }
 
     button {
       font-size: 1rem;
-      padding: 8px;
-    }
-
-    .pagination {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 1.5rem;
-    }
-
-    .pagination a {
-      text-decoration: none;
-      padding: 4px 8px;
-      background-color: #f0f0f0;
-      border-radius: 5px;
-      color: #333;
-    }
-
-    .pagination a.active {
-      background-color: #333;
-      color: #fff;
+      padding: 6px 12px;
     }
   </style>
 </head>
@@ -140,54 +133,49 @@
         const a = document.createElement("a");
         a.href = `?page=${p}`;
         a.textContent = `[${p}]`;
-        if (p === page) a.className = "active";
+        if (p === page) a.style.fontWeight = "bold";
         target.appendChild(a);
       }
     }
 
     function loadCards() {
       const cardsDiv = document.getElementById("cards");
+
       for (let i = start; i <= end; i++) {
         const padded = i.toString().padStart(3, '0');
-        const word = wordmap[padded] || '???';
+        const word = (typeof wordmap !== 'undefined' && wordmap[padded]) ? wordmap[padded] : "";
         const audioPath = `assets/${padded}_${word}.mp3`;
 
         const div = document.createElement("div");
         div.className = "card";
-        div.innerHTML = `
-          ${showImages ? `<img src="assets/File${i}.png" alt="Image ${i}">` : ""}
+
+        let content = "";
+        if (showImages) {
+          content += `<img src="assets/File${i}.png" alt="Image ${i}">`;
+        }
+
+        content += `
           <p><strong>${padded}</strong> — ${word}</p>
-          <audio id="audio_${i}" src="${audioPath}"></audio>
-          <button onclick="document.getElementById('audio_${i}').play()">▶️</button>
-          ${showImages ? `<label><input type="checkbox" onchange="toggleLearned(${i}, this)" ${isLearned(i) ? "checked" : ""}> 覚えた</label>` : ""}
+          <audio id="audio_${i}" src="${audioPath}" ${page <= 1 ? 'autoplay' : ''}></audio>
+          <button onclick="document.getElementById('audio_${i}').play()">▶️</button><br>
+          <label>
+            <input type="checkbox" onchange="toggleLearned(${i}, this)" ${isLearned(i) ? "checked" : ""}>
+            覚えた
+          </label>
         `;
+
+        div.innerHTML = content;
         cardsDiv.appendChild(div);
+
         if (!isLearned(i)) {
           audioElements.push(() => document.getElementById('audio_' + i));
         }
       }
     }
 
-    function autoPlayAll() {
-      if (page === 0 || page === 1) {
-        let index = 0;
-        function playNext() {
-          if (index >= audioElements.length) return;
-          const audio = audioElements[index]();
-          audio.play();
-          audio.onended = () => {
-            index++;
-            playNext();
-          };
-        }
-        playNext();
-      }
-    }
-
     buildPagination(document.getElementById("paginationTop"));
     buildPagination(document.getElementById("paginationBottom"));
     loadCards();
-    autoPlayAll();
   </script>
 </body>
 </html>
