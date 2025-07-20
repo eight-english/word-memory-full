@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Word Memory App</title>
   <style>
     body {
@@ -9,6 +10,48 @@
       padding: 1rem;
       max-width: 480px;
       margin: auto;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 1rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      min-width: 150px;
+      padding: 6px;
+      font-size: 1rem;
+    }
+
+    button {
+      font-size: 1rem;
+      padding: 6px 12px;
+    }
+
+    .counter {
+      font-size: 0.9rem;
+    }
+
+    .pagination {
+      margin: 1rem 0;
+      text-align: center;
+      flex-wrap: wrap;
+    }
+
+    .pagination a {
+      margin: 0 5px;
+      text-decoration: none;
     }
 
     .card {
@@ -26,37 +69,6 @@
       height: auto;
       border-radius: 8px;
     }
-
-    .controls {
-      margin-bottom: 1rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .pagination {
-      margin: 1rem 0;
-      text-align: center;
-      flex-wrap: wrap;
-    }
-
-    .pagination a {
-      margin: 0 5px;
-      text-decoration: none;
-    }
-
-    input[type="text"] {
-      padding: 6px;
-      font-size: 1rem;
-      flex: 1;
-      min-width: 200px;
-    }
-
-    button {
-      font-size: 1rem;
-      padding: 6px 12px;
-    }
   </style>
 </head>
 <body>
@@ -68,6 +80,7 @@
     <input type="text" id="searchInput" placeholder="単語検索..." oninput="filterCards()">
     <button onclick="playUnlearned()">▶️ 覚えていないカードだけ再生</button>
     <button onclick="resetLearned()">🔄 覚えた状態をリセット</button>
+    <div class="counter">🧠 覚えた単語: <span id="learnedCount">0</span>/721</div>
   </div>
 
   <div id="cards"></div>
@@ -93,6 +106,7 @@
 
     function toggleLearned(index, checkbox) {
       localStorage.setItem("learned_" + index, checkbox.checked ? "1" : "0");
+      updateLearnedCount();
     }
 
     function resetLearned() {
@@ -121,6 +135,14 @@
         };
       }
       playNext();
+    }
+
+    function updateLearnedCount() {
+      let count = 0;
+      for (let i = 1; i <= totalItems; i++) {
+        if (isLearned(i)) count++;
+      }
+      document.getElementById("learnedCount").textContent = count;
     }
 
     function buildPagination(target) {
@@ -176,6 +198,7 @@
     buildPagination(document.getElementById("paginationTop"));
     buildPagination(document.getElementById("paginationBottom"));
     loadCards();
+    updateLearnedCount();
   </script>
 </body>
 </html>
