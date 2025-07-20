@@ -61,10 +61,10 @@
 <body>
   <h1>Word Memory App</h1>
 
-  <!-- ページネーション上部 -->
-  <div class="pagination" id="pagination"></div>
+  <!-- 上部ページネーション -->
+  <div class="pagination" id="paginationTop"></div>
 
-  <!-- 検索＆再生＆リセット -->
+  <!-- コントロール -->
   <div class="controls">
     <input type="text" id="searchInput" placeholder="単語検索..." oninput="filterCards()">
     <button onclick="playUnlearned()">▶️ 覚えていないカードだけ再生</button>
@@ -73,7 +73,7 @@
 
   <div id="cards"></div>
 
-  <!-- ページネーション下部 -->
+  <!-- 下部ページネーション -->
   <div class="pagination" id="paginationBottom"></div>
 
   <script>
@@ -86,17 +86,7 @@
     const end = page > 0 ? Math.min(start + pageSize - 1, totalItems) : totalItems;
     const showImages = page > 0;
 
-    const cardsDiv = document.getElementById("cards");
-    const paginationDiv = document.getElementById("pagination");
-    const paginationDivBottom = document.getElementById("paginationBottom");
-
-    const wordMap = {}; // 後でファイル名から自動生成可
-    // デモ用: ファイル名の単語マップを仮にいくつか定義（必要に応じて拡張）
-    wordMap[1] = "a";
-    wordMap[2] = "able";
-    wordMap[3] = "about";
-    wordMap[100] = "black";
-    wordMap[721] = "zoo";
+    const audioElements = [];
 
     function isLearned(index) {
       return localStorage.getItem("learned_" + index) === "1";
@@ -118,31 +108,6 @@
       document.querySelectorAll(".card").forEach(card => {
         card.style.display = card.textContent.toLowerCase().includes(keyword) ? "block" : "none";
       });
-    }
-
-    const audioElements = [];
-
-    for (let i = start; i <= end; i++) {
-      const padded = i.toString().padStart(3, '0');
-      const word = wordMap[i] || ""; // ファイル名から取得想定
-      const div = document.createElement("div");
-      div.className = "card";
-
-      div.innerHTML = `
-        ${showImages ? `<img src="assets/File${i}.png" alt="Image ${i}">` : ""}
-        <p><strong>${padded}</strong> — ${word}</p>
-        <audio id="audio_${i}" src="assets/${padded}_${word}.mp3"></audio>
-        <button onclick="document.getElementById('audio_${i}').play()">▶️</button><br>
-        <label>
-          <input type="checkbox" onchange="toggleLearned(${i}, this)" ${isLearned(i) ? "checked" : ""}>
-          覚えた
-        </label>
-      `;
-      cardsDiv.appendChild(div);
-
-      if (!isLearned(i)) {
-        audioElements.push(() => document.getElementById('audio_' + i));
-      }
     }
 
     function playUnlearned() {
@@ -174,8 +139,37 @@
       }
     }
 
-    buildPagination(paginationDiv);
-    buildPagination(paginationDivBottom);
+    function loadCards() {
+      const cardsDiv = document.getElementById("cards");
+
+      for (let i = start; i <= end; i++) {
+        const padded = i.toString().padStart(3, '0');
+        const audioPath = `assets/${padded}_dummy.mp3`; // 仮
+        const word = (audioPath.split("/").pop().split("_")[1] || "").replace(".mp3", "");
+
+        const div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = `
+          ${showImages ? `<img src="assets/File${i}.png" alt="Image ${i}">` : ""}
+          <p><strong>${padded}</strong> — ${word}</p>
+          <audio id="audio_${i}" src="assets/${padded}_${word}.mp3"></audio>
+          <button onclick="document.getElementById('audio_${i}').play()">▶️</button><br>
+          <label>
+            <input type="checkbox" onchange="toggleLearned(${i}, this)" ${isLearned(i) ? "checked" : ""}>
+            覚えた
+          </label>
+        `;
+        cardsDiv.appendChild(div);
+        if (!isLearned(i)) {
+          audioElements.push(() => document.getElementById('audio_' + i));
+        }
+      }
+    }
+
+    // 実行
+    buildPagination(document.getElementById("paginationTop"));
+    buildPagination(document.getElementById("paginationBottom"));
+    loadCards();
   </script>
 </body>
 </html>
