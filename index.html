@@ -57,6 +57,7 @@
       padding: 6px 12px;
     }
   </style>
+  <script src="wordmap.js"></script>
 </head>
 <body>
   <h1>Word Memory App</h1>
@@ -144,15 +145,16 @@
 
       for (let i = start; i <= end; i++) {
         const padded = i.toString().padStart(3, '0');
-        const audioPath = `assets/${padded}_dummy.mp3`; // 仮
-        const word = (audioPath.split("/").pop().split("_")[1] || "").replace(".mp3", "");
+        const word = wordmap[i] || "unknown";
+        const audioPath = `assets/${padded}_${word}.mp3`;
+        const imagePath = `assets/File${i}.png`;
 
         const div = document.createElement("div");
         div.className = "card";
         div.innerHTML = `
-          ${showImages ? `<img src="assets/File${i}.png" alt="Image ${i}">` : ""}
+          ${showImages ? `<img src="${imagePath}" alt="Image ${i}">` : ""}
           <p><strong>${padded}</strong> — ${word}</p>
-          <audio id="audio_${i}" src="assets/${padded}_${word}.mp3"></audio>
+          <audio id="audio_${i}" src="${audioPath}"></audio>
           <button onclick="document.getElementById('audio_${i}').play()">▶️</button><br>
           <label>
             <input type="checkbox" onchange="toggleLearned(${i}, this)" ${isLearned(i) ? "checked" : ""}>
