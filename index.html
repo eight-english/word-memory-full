@@ -1,0 +1,73 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Word Memory App</title>
+    <style>
+        body { font-family: sans-serif; padding: 1rem; }
+        .card { border: 1px solid #ccc; border-radius: 10px; padding: 1rem; margin: 1rem 0; display: flex; align-items: center; gap: 1rem; }
+        .card img { width: 100px; height: auto; }
+        .controls { margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <h1>Word Memory App</h1>
+    <div class="controls">
+        <button onclick="playUnlearned()">▶️ 覚えていないカードだけ再生</button>
+    </div>
+    <div id="cards"></div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const page = parseInt(urlParams.get("page")) || 1;
+        const start = (page - 1) * 10 + 1;
+        const end = Math.min(start + 9, 721);
+        const cardsDiv = document.getElementById("cards");
+
+        function isLearned(index) {
+            return localStorage.getItem("learned_" + index) === "1";
+        }
+
+        function toggleLearned(index, checkbox) {
+            localStorage.setItem("learned_" + index, checkbox.checked ? "1" : "0");
+        }
+
+        const audioElements = [];
+
+        for (let i = start; i <= end; i++) {
+            const padded = i.toString().padStart(3, '0');
+            const div = document.createElement("div");
+            div.className = "card";
+            div.innerHTML = `
+                <img src="assets/File${i}.png" alt="Image ${i}">
+                <div>
+                    <p><strong>${padded}</strong></p>
+                    <audio id="audio_${i}" src="assets/${padded}_a.mp3"></audio>
+                    <button onclick="document.getElementById('audio_${i}').play()">▶️</button><br>
+                    <label>
+                        <input type="checkbox" onchange="toggleLearned(${i}, this)" ${isLearned(i) ? "checked" : ""}>
+                        覚えた
+                    </label>
+                </div>
+            `;
+            cardsDiv.appendChild(div);
+            if (!isLearned(i)) {
+                audioElements.push(document.getElementById('audio_' + i));
+            }
+        }
+
+        function playUnlearned() {
+            let i = 0;
+            function playNext() {
+                if (i >= audioElements.length) return;
+                audioElements[i].play();
+                audioElements[i].onended = () => {
+                    i++;
+                    playNext();
+                };
+            }
+            playNext();
+        }
+    </script>
+</body>
+</html>
